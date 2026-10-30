@@ -18,22 +18,78 @@ const store = {
 };
 let favorites = store.get('favorites', []);
 
-const blastOpts = { mode: 'half', repeats: 2, invert: false, ...store.get('blastOpts', {}) };
+const blastOpts = { output: 'usb', mode: 'half', repeats: 1, invert: false, ...store.get('blastOpts', {}) };
+$('#opt-output').value = blastOpts.output;
 $('#opt-mode').value = blastOpts.mode;
 $('#opt-repeats').value = String(blastOpts.repeats);
 $('#opt-invert').checked = blastOpts.invert;
+
+function applyOutput() {
+  const audio = blastOpts.output === 'audio';
+  $('#blast-settings').classList.toggle('audio', audio);
+  $('#blaster').hidden = audio;
+}
+applyOutput();
+
 $('#blast-settings').addEventListener('change', () => {
+  blastOpts.output = $('#opt-output').value;
   blastOpts.mode = $('#opt-mode').value;
   blastOpts.repeats = +$('#opt-repeats').value;
   blastOpts.invert = $('#opt-invert').checked;
   store.set('blastOpts', blastOpts);
+  applyOutput();
 });
 
-function blast(sig, label) {
+/* ---------- USB blaster ---------- */
+
+function setUsbStatus(info) {
+  $('#usb-led').classList.toggle('on', !!info);
+  $('#usb-connect').textContent = info ? 'Reconnect' : 'Connect';
+  if (info) {
+    $('#usb-status').textContent = `Connected: ${info.name}`;
+    $('#usb-hint').textContent = `Ready to blast (${info.protocol} format, product ${info.productId.toString(16).padStart(4, '0')}). Point it at the device.`;
+  } else if (!IRUsb.supported()) {
+    $('#usb-status').textContent = 'USB blasting needs Chrome on Android';
+    $('#usb-hint').textContent = /iPhone|iPad|iPod/.test(navigator.userAgent)
+      ? 'iPhone and iPad browsers can’t use USB devices. You can still look up and copy codes here.'
+      : 'This browser has no WebUSB. Open the site in Chrome or Edge. You can still copy codes.';
+    $('#usb-connect').hidden = true;
+  } else {
+    $('#usb-status').textContent = 'USB blaster not connected';
+    $('#usb-hint').textContent = 'Plug the Ocrustar / ElkSmart blaster into your Android phone, then tap Connect.';
+  }
+}
+
+$('#usb-connect').onclick = async () => {
   try {
-    const { toneHz } = IRAudio.blast(sig, blastOpts);
-    toast(`📡 ${label} · ${(toneHz / 1000).toFixed(1)} kHz tone`);
+    setUsbStatus(await IRUsb.connect());
   } catch (e) {
+    if (e.name !== 'NotFoundError') toast(e.message); // NotFoundError = picker cancelled
+    setUsbStatus(null);
+  }
+};
+window.addEventListener('irusb-disconnect', () => { setUsbStatus(null); toast('Blaster unplugged'); });
+setUsbStatus(null);
+IRUsb.reconnect().then((info) => info && setUsbStatus(info)).catch(() => {});
+
+async function blast(sig, label) {
+  try {
+    if (blastOpts.output === 'audio') {
+      const { toneHz } = IRAudio.blast(sig, blastOpts);
+      toast(`📡 ${label} · ${(toneHz / 1000).toFixed(1)} kHz tone`);
+      return;
+    }
+    if (!IRUsb.connected()) {
+      toast(IRUsb.supported() ? 'Tap Connect first' : 'USB blasting needs Chrome on Android');
+      return;
+    }
+    const led = $('#usb-led');
+    led.classList.add('flash');
+    await IRUsb.send(sig, blastOpts.repeats);
+    led.classList.remove('flash');
+    toast(`📡 Sent ${label}`);
+  } catch (e) {
+    $('#usb-led').classList.remove('flash');
     toast(e.message);
   }
 }

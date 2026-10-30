@@ -21,10 +21,26 @@
       <input id="search" type="search" placeholder="Search brands or device types (e.g. Samsung, TV, Projector)…" autocomplete="off">
       <div id="stats" class="stats">Loading database…</div>
     </section>
+    <section class="blaster" id="blaster">
+      <div class="blaster-row">
+        <span class="led" id="usb-led"></span>
+        <div class="blaster-text">
+          <b id="usb-status">USB blaster not connected</b>
+          <small id="usb-hint">Plug the Ocrustar / ElkSmart blaster into your Android phone, then tap Connect.</small>
+        </div>
+        <button class="primary" id="usb-connect">Connect</button>
+      </div>
+    </section>
     <details class="blast-settings" id="blast-settings">
-      <summary>📡 Audio blaster settings</summary>
-      <p>Plug the IR blaster into the phone (USB-C or headphone adapter), turn the volume <b>all the way up</b>, and point it at the device.</p>
-      <label>Carrier
+      <summary>⚙️ Blaster settings</summary>
+      <label>Send with
+        <select id="opt-output">
+          <option value="usb">USB blaster (Ocrustar / ElkSmart, Android Chrome)</option>
+          <option value="audio">Audio-jack blaster (sound output)</option>
+        </select>
+      </label>
+      <p class="audio-only">Audio mode: plug in a headphone-style IR blaster, turn the volume <b>all the way up</b>, and point it at the device.</p>
+      <label class="audio-only">Carrier
         <select id="opt-mode">
           <option value="half">Half carrier, stereo inverted (most audio IR blasters)</option>
           <option value="full">Full carrier (needs 96 kHz output)</option>
@@ -38,7 +54,7 @@
           <option value="5">5×</option>
         </select>
       </label>
-      <label class="check"><input type="checkbox" id="opt-invert"> Flip polarity (try if nothing responds)</label>
+      <label class="check audio-only"><input type="checkbox" id="opt-invert"> Flip polarity (try if nothing responds)</label>
     </details>
     <nav id="crumbs" class="crumbs"></nav>
     <section id="view"></section>
@@ -46,12 +62,14 @@
 
   <footer class="foot">
     <p>Codes come from the open <a href="https://github.com/probonopd/irdb" target="_blank" rel="noopener">IRDB</a> project and are loaded live from GitHub.
+    USB blasting is a WebUSB port of <a href="https://git.janouch.name/p/usb-drivers" target="_blank" rel="noopener">elksmart-comm</a> by Přemysl Eric Janouch (0BSD).
     This site is not affiliated with Ocrustar or ElkSmart.</p>
   </footer>
 
   <div id="toast" class="toast" hidden></div>
   <script src="encoders.js"></script>
   <script src="audio.js"></script>
+  <script src="usb.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
