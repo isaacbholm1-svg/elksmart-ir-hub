@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>IR Blaster Code Hub</title>
+  <meta name="description" content="Unofficial IR code database for Ocrustar / ElkSmart USB-C phone IR blasters.">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="top">
+    <a class="logo" href="#/">
+      <span class="logo-dot"></span>
+      <span>IR Blaster Code Hub</span>
+    </a>
+    <p class="tag">Unofficial code database for Ocrustar / ElkSmart USB-C IR blasters</p>
+  </header>
+
+  <main id="app">
+    <section class="search-bar">
+      <input id="search" type="search" placeholder="Search brands or device types (e.g. Samsung, TV, Projector)…" autocomplete="off">
+      <div id="stats" class="stats">Loading database…</div>
+    </section>
+    <nav id="crumbs" class="crumbs"></nav>
+    <section id="view"></section>
+  </main>
+
+  <footer class="foot">
+    <p>Codes come from the open <a href="https://github.com/probonopd/irdb" target="_blank" rel="noopener">IRDB</a> project and are loaded live from GitHub.
+    This site is not affiliated with Ocrustar or ElkSmart.</p>
+  </footer>
+
+  <div id="toast" class="toast" hidden></div>
+  <script src="encoders.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
