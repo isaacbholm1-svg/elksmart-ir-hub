@@ -21,6 +21,25 @@
       <input id="search" type="search" placeholder="Search brands or device types (e.g. Samsung, TV, Projector)…" autocomplete="off">
       <div id="stats" class="stats">Loading database…</div>
     </section>
+    <details class="blast-settings" id="blast-settings">
+      <summary>📡 Audio blaster settings</summary>
+      <p>Plug the IR blaster into the phone (USB-C or headphone adapter), turn the volume <b>all the way up</b>, and point it at the device.</p>
+      <label>Carrier
+        <select id="opt-mode">
+          <option value="half">Half carrier, stereo inverted (most audio IR blasters)</option>
+          <option value="full">Full carrier (needs 96 kHz output)</option>
+        </select>
+      </label>
+      <label>Send each press
+        <select id="opt-repeats">
+          <option value="1">1×</option>
+          <option value="2">2×</option>
+          <option value="3">3×</option>
+          <option value="5">5×</option>
+        </select>
+      </label>
+      <label class="check"><input type="checkbox" id="opt-invert"> Flip polarity (try if nothing responds)</label>
+    </details>
     <nav id="crumbs" class="crumbs"></nav>
     <section id="view"></section>
   </main>
@@ -32,6 +51,7 @@
 
   <div id="toast" class="toast" hidden></div>
   <script src="encoders.js"></script>
+  <script src="audio.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

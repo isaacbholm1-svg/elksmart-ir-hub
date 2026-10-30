@@ -45,6 +45,19 @@ main { max-width: 1100px; margin: 0 auto; padding: 0 16px 40px; }
 #search:focus { outline: 2px solid var(--accent); border-color: transparent; }
 .stats { color: var(--muted); font-size: 13px; margin-top: 6px; }
 
+.blast-settings {
+  background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius);
+  padding: 10px 14px; margin-bottom: 12px; font-size: 14px;
+}
+.blast-settings summary { cursor: pointer; font-weight: 600; }
+.blast-settings p { color: var(--muted); margin: 8px 0; }
+.blast-settings label { display: block; margin: 8px 0; }
+.blast-settings select {
+  display: block; width: 100%; max-width: 420px; margin-top: 4px; padding: 7px;
+  font: inherit; background: var(--panel-2); color: var(--text); border: 1px solid var(--line); border-radius: 8px;
+}
+.blast-settings .check { display: flex; gap: 8px; align-items: center; }
+
 .crumbs { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0 14px; font-size: 14px; }
 .crumbs a { color: var(--muted); text-decoration: none; }
 .crumbs a:hover { color: var(--text); }

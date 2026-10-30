@@ -18,6 +18,26 @@ const store = {
 };
 let favorites = store.get('favorites', []);
 
+const blastOpts = { mode: 'half', repeats: 2, invert: false, ...store.get('blastOpts', {}) };
+$('#opt-mode').value = blastOpts.mode;
+$('#opt-repeats').value = String(blastOpts.repeats);
+$('#opt-invert').checked = blastOpts.invert;
+$('#blast-settings').addEventListener('change', () => {
+  blastOpts.mode = $('#opt-mode').value;
+  blastOpts.repeats = +$('#opt-repeats').value;
+  blastOpts.invert = $('#opt-invert').checked;
+  store.set('blastOpts', blastOpts);
+});
+
+function blast(sig, label) {
+  try {
+    const { toneHz } = IRAudio.blast(sig, blastOpts);
+    toast(`📡 ${label} · ${(toneHz / 1000).toFixed(1)} kHz tone`);
+  } catch (e) {
+    toast(e.message);
+  }
+}
+
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const urlFor = (path) => RAW + path.split('/').map(encodeURIComponent).join('/');
 const hashFor = (...parts) => '#/' + parts.map(encodeURIComponent).join('/');
@@ -168,6 +188,7 @@ async function renderRemote(brand, type, file) {
           <div class="proto">${esc(c.protocol)} D=${esc(c.device)} S=${esc(c.subdevice)} F=${esc(c.function)}${c.sig ? ` · ${c.sig.freq / 1000} kHz` : ''}</div>
         </div>
         <div class="actions">${c.sig ? `
+          <button class="primary" data-act="blast">Blast</button>
           <button data-act="pronto">Copy Pronto</button>
           <button data-act="raw">Copy raw</button>
           <button data-act="wave">Show</button>` : `<span class="unsupported">Protocol not encodable yet</span>`}
@@ -192,6 +213,7 @@ async function renderRemote(brand, type, file) {
     if (!btn) return;
     const row = btn.closest('.code');
     const c = codes[row.dataset.i];
+    if (btn.dataset.act === 'blast') blast(c.sig, c.functionname || 'Button');
     if (btn.dataset.act === 'pronto') copy(c.pronto, 'Pronto hex');
     if (btn.dataset.act === 'raw') copy(c.raw, 'Raw timings');
     if (btn.dataset.act === 'wave') {
