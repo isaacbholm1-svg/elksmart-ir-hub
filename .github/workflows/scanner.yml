@@ -1,0 +1,71 @@
+# Builds the 3D Scanner app as an unsigned Scanner3D.ipa on GitHub's free
+# macOS runners. Sign and install it on your iPhone with KSign.
+# Download it from the run's "Artifacts", or from the "scanner-latest" release:
+# https://github.com/<owner>/<repo>/releases/download/scanner-latest/Scanner3D.ipa
+name: Build 3D Scanner app
+
+on:
+  push:
+    paths:
+      - 'scanner/**'
+      - '.github/workflows/scanner.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: scanner-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Generate the Xcode project
+        working-directory: scanner
+        run: |
+          brew install xcodegen
+          xcodegen generate
+
+      - name: Build (unsigned)
+        working-directory: scanner
+        run: |
+          set -o pipefail
+          xcodebuild -project Scanner3D.xcodeproj -scheme Scanner3D \
+            -configuration Release -sdk iphoneos \
+            -destination 'generic/platform=iOS' \
+            -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" \
+            build 2>&1 | tee build.log | grep -E "error:|warning: .*(deprecated|will be an error)|BUILD (SUCCEEDED|FAILED)" || true
+          test -d build/Build/Products/Release-iphoneos/Scanner3D.app
+
+      - name: Show compiler errors
+        if: failure()
+        working-directory: scanner
+        run: grep -E -A3 "error:" build.log | head -200 || true
+
+      - name: Package Scanner3D.ipa
+        working-directory: scanner
+        run: |
+          mkdir -p Payload
+          cp -R build/Build/Products/Release-iphoneos/Scanner3D.app Payload/
+          zip -qry Scanner3D.ipa Payload
+          ls -lh Scanner3D.ipa
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Scanner3D-ipa
+          path: scanner/Scanner3D.ipa
+
+      - name: Publish to the scanner-latest release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release delete scanner-latest --cleanup-tag --yes || true
+          gh release create scanner-latest scanner/Scanner3D.ipa \
+            --target "$GITHUB_SHA" --prerelease \
+            --title "3D Scanner app (latest build)" \
+            --notes "Unsigned IPA built from ${GITHUB_REF_NAME} @ ${GITHUB_SHA::7}. Sign and install it with KSign. Needs iOS 17+; Object, Space and Room modes need a LiDAR iPhone/iPad (Pro models)."

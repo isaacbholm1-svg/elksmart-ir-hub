@@ -5,3 +5,9 @@ ios/Payload/
 ios/*.ipa
 ios/*.xcodeproj/
 ios/Info.plist
+scanner/build/
+scanner/Payload/
+scanner/*.ipa
+scanner/*.xcodeproj/
+scanner/Info.plist
+scanner/build.log
