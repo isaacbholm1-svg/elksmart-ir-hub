@@ -7,7 +7,7 @@ import SwiftUI
 struct ScannerApp: App {
     @StateObject private var library = ScanLibrary()
 
-    var body: some Scene {
+    var body: some SwiftUI.Scene {
         WindowGroup {
             RootView()
                 .environmentObject(library)
