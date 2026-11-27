@@ -30,6 +30,23 @@ ElkSmart / Ocrustar blasters (Lightning, USB-C audio or headphone-jack models).
 [`ios-latest` release](../../releases/tag/ios-latest) (or the run's artifacts), open it in
 KSign, sign it with your certificate, and install.
 
+## 3D Scanner app (`scanner/`)
+
+A separate iPhone / iPad app for making 3D models, also built free on GitHub Actions
+(`.github/workflows/scanner.yml`). Download `Scanner3D.ipa` from the
+[`scanner-latest` release](../../releases/tag/scanner-latest) and sign it with KSign.
+Needs iOS 17+.
+
+| Mode | What it makes | Needs |
+| --- | --- | --- |
+| **Object** | Guided Apple Object Capture, then on-device photogrammetry into a photo-textured USDZ. Photos can also be exported for full-detail processing on a computer. | LiDAR |
+| **Space** | LiDAR mesh of rooms and big things, textured from automatically chosen sharp photos. Exports textured OBJ, USDZ, vertex-coloured PLY, coloured point cloud and camera poses. | LiDAR |
+| **Room Plan** | RoomPlan scan of one or more rooms, merged into a 3D model plus a floor plan PNG with wall lengths, area, doors, windows and furniture. | LiDAR |
+| **Photo Dataset** | Pose-tracked high-res photos, `transforms.json` (nerfstudio format) and a LiDAR point cloud, ready for Gaussian splats or NeRF. | Any ARKit iPhone |
+
+Scans are listed in the app's Library (3D viewer, AR Quick Look, share/zip export) and appear
+in the Files app under *On My iPhone → 3D Scanner*.
+
 USB support is a JavaScript (WebUSB) port of
 [elksmart-comm](https://git.janouch.name/p/usb-drivers) by Přemysl Eric Janouch (0BSD).
 
