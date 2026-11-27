@@ -1,0 +1,72 @@
+# Builds an unsigned IRHub.ipa on GitHub's free macOS runners.
+# Sign and install it on your iPhone with KSign (or any sideloading signer).
+# Download it from the run's "Artifacts", or from the "ios-latest" release:
+# https://github.com/<owner>/<repo>/releases/download/ios-latest/IRHub.ipa
+name: Build iOS app
+
+on:
+  push:
+    paths:
+      - 'ios/**'
+      - '*.html'
+      - '*.js'
+      - '*.css'
+      - '.github/workflows/ios.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: ios-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Copy the web app into the iOS bundle
+        run: |
+          mkdir -p ios/Web
+          cp index.html style.css *.js ios/Web/
+
+      - name: Generate the Xcode project
+        working-directory: ios
+        run: |
+          brew install xcodegen
+          xcodegen generate
+
+      - name: Build (unsigned)
+        working-directory: ios
+        run: |
+          xcodebuild -project IRHub.xcodeproj -scheme IRHub \
+            -configuration Release -sdk iphoneos \
+            -destination 'generic/platform=iOS' \
+            -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" \
+            build
+
+      - name: Package IRHub.ipa
+        working-directory: ios
+        run: |
+          mkdir -p Payload
+          cp -R build/Build/Products/Release-iphoneos/IRHub.app Payload/
+          zip -qry IRHub.ipa Payload
+          ls -lh IRHub.ipa
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: IRHub-ipa
+          path: ios/IRHub.ipa
+
+      - name: Publish to the ios-latest release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release delete ios-latest --cleanup-tag --yes || true
+          gh release create ios-latest ios/IRHub.ipa \
+            --target "$GITHUB_SHA" --prerelease \
+            --title "iOS app (latest build)" \
+            --notes "Unsigned IPA built from ${GITHUB_REF_NAME} @ ${GITHUB_SHA::7}. Sign and install it with KSign."

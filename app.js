@@ -19,6 +19,17 @@ const store = {
 let favorites = store.get('favorites', []);
 
 const blastOpts = { output: 'usb', mode: 'half', repeats: 1, invert: false, ...store.get('blastOpts', {}) };
+
+// Set when running inside the iOS app (ios/Sources/HubViewController.swift).
+// iOS apps can't talk to USB-data blasters, so the app always sends through audio.
+const native = window.IRNative || null;
+if (native) {
+  blastOpts.output = 'audio';
+  const usbOpt = $('#opt-output option[value="usb"]');
+  usbOpt.disabled = true;
+  usbOpt.textContent = 'USB data blaster (Android only, not possible on iPhone)';
+  $('#opt-output option[value="audio"]').textContent = 'Audio blaster (Lightning / USB-C / headphone jack)';
+}
 $('#opt-output').value = blastOpts.output;
 $('#opt-mode').value = blastOpts.mode;
 $('#opt-repeats').value = String(blastOpts.repeats);
@@ -27,12 +38,12 @@ $('#opt-invert').checked = blastOpts.invert;
 function applyOutput() {
   const audio = blastOpts.output === 'audio';
   $('#blast-settings').classList.toggle('audio', audio);
-  $('#blaster').hidden = audio;
+  $('#blaster').hidden = audio && !native;
 }
 applyOutput();
 
 $('#blast-settings').addEventListener('change', () => {
-  blastOpts.output = $('#opt-output').value;
+  blastOpts.output = native ? 'audio' : $('#opt-output').value;
   blastOpts.mode = $('#opt-mode').value;
   blastOpts.repeats = +$('#opt-repeats').value;
   blastOpts.invert = $('#opt-invert').checked;
@@ -60,20 +71,62 @@ function setUsbStatus(info) {
   }
 }
 
-$('#usb-connect').onclick = async () => {
-  try {
-    setUsbStatus(await IRUsb.connect());
-  } catch (e) {
-    if (e.name !== 'NotFoundError') toast(e.message); // NotFoundError = picker cancelled
-    setUsbStatus(null);
+/* ---------- iOS app: audio blaster status ---------- */
+
+// s: { blaster: { type, name } | null, wireless: name | null, volume: 0..1 }
+function setNativeStatus(s) {
+  const vol = Math.round((s.volume ?? 0) * 100);
+  const btn = $('#usb-connect');
+  $('#usb-led').classList.toggle('on', !!s.blaster);
+  if (s.blaster) {
+    $('#usb-status').textContent = `Blaster output: ${s.blaster.name}`;
+    $('#usb-hint').textContent = vol >= 100
+      ? 'Volume is at 100%. Point the blaster at the device and tap Blast. Don’t wear headphones while blasting.'
+      : `Volume is ${vol}%. Audio blasters need it at 100%.`;
+  } else if (s.wireless) {
+    $('#usb-status').textContent = `Sound is going to ${s.wireless}`;
+    $('#usb-hint').textContent = 'Disconnect Bluetooth / AirPlay so the sound goes to the plugged-in blaster.';
+  } else {
+    $('#usb-status').textContent = 'No audio blaster detected';
+    $('#usb-hint').textContent = 'Plug in an audio-type ElkSmart / Ocrustar blaster (Lightning, USB-C or headphone jack). '
+      + 'If yours is plugged in but never shows up here, it’s a USB-data model, which iPhones can’t drive.';
   }
-};
-window.addEventListener('irusb-disconnect', () => { setUsbStatus(null); toast('Blaster unplugged'); });
-setUsbStatus(null);
-IRUsb.reconnect().then((info) => info && setUsbStatus(info)).catch(() => {});
+  btn.textContent = 'Max volume';
+  btn.hidden = !s.blaster || vol >= 100;
+}
+
+if (native) {
+  $('#usb-connect').onclick = async () => {
+    try {
+      if (!(await native.maxVolume())) toast('Turn the volume up with the side buttons');
+    } catch (e) { toast(e.message); }
+  };
+  window.addEventListener('irnative-status', (e) => setNativeStatus(e.detail));
+  native.status().then(setNativeStatus).catch(() => {});
+} else {
+  $('#usb-connect').onclick = async () => {
+    try {
+      setUsbStatus(await IRUsb.connect());
+    } catch (e) {
+      if (e.name !== 'NotFoundError') toast(e.message); // NotFoundError = picker cancelled
+      setUsbStatus(null);
+    }
+  };
+  window.addEventListener('irusb-disconnect', () => { setUsbStatus(null); toast('Blaster unplugged'); });
+  setUsbStatus(null);
+  IRUsb.reconnect().then((info) => info && setUsbStatus(info)).catch(() => {});
+}
 
 async function blast(sig, label) {
   try {
+    if (native) {
+      const r = await native.blast(sig, blastOpts);
+      setNativeStatus(r);
+      toast(r.blaster
+        ? `📡 ${label} · ${(r.toneHz / 1000).toFixed(1)} kHz tone`
+        : `📡 ${label} played, but no blaster is plugged in`);
+      return;
+    }
     if (blastOpts.output === 'audio') {
       const { toneHz } = IRAudio.blast(sig, blastOpts);
       toast(`📡 ${label} · ${(toneHz / 1000).toFixed(1)} kHz tone`);
@@ -108,7 +161,8 @@ function toast(msg) {
 
 async function copy(text, label) {
   try {
-    await navigator.clipboard.writeText(text);
+    if (native) await native.copy(text);
+    else await navigator.clipboard.writeText(text);
   } catch {
     const ta = document.createElement('textarea');
     ta.value = text;
@@ -297,6 +351,10 @@ function waveform(timings) {
 }
 
 function download(filename, text) {
+  if (native) {
+    native.share(filename, text).catch((e) => toast(e.message));
+    return;
+  }
   const a = document.createElement('a');
   a.href = URL.createObjectURL(new Blob([text], { type: 'text/plain' }));
   a.download = filename;
